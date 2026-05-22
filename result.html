@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>브랜드 자가진단 결과</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+  :root {
+    --bg: #EFE8DC;
+    --bg-deep: #E5DCC9;
+    --surface: #FAF6EE;
+    --surface-2: #F2EBDA;
+    --ink: #1F1B16;
+    --ink-soft: #4A4339;
+    --ink-mute: #8B7E6C;
+    --line: #D9CFB8;
+    --line-soft: #E8DFCB;
+    --terracotta: #B85C38;
+    --olive: #4A6741;
+    --mustard: #C9942F;
+    --gold: #B8860B;
+    --rust: #8B2C1E;
+    --mocha: #8B7355;
+    --g-S: #B8860B;
+    --g-A: #4A6741;
+    --g-B: #8B7355;
+    --g-C: #B85C38;
+    --g-D: #8B2C1E;
+    --g-none: #C8BFA8;
+    --display: 'Fraunces', 'Gowun Batang', serif;
+    --body: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(at 8% 5%, rgba(184,92,56,0.07) 0%, transparent 40%),
+      radial-gradient(at 92% 95%, rgba(74,103,65,0.05) 0%, transparent 45%);
+    min-height: 100vh;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 48px 80px; }
+  @media (max-width: 720px) { .container { padding: 24px 18px 60px; } }
+
+  /* ---------- State (loading / error) ---------- */
+  .state-block {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .state-icon {
+    width: 64px; height: 64px;
+    border: 1px solid var(--ink); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-size: 32px;
+    margin-bottom: 22px;
+  }
+  .state-icon.loading {
+    border-top-color: var(--terracotta);
+    border-right-color: transparent;
+    animation: spin 1s linear infinite;
+  }
+  .state-icon.error {
+    background: var(--rust); border-color: var(--rust); color: var(--surface);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-eyebrow {
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--terracotta);
+    margin-bottom: 8px;
+  }
+  .state-title {
+    font-family: var(--display); font-size: 28px; color: var(--ink); margin-bottom: 10px;
+  }
+  .state-msg {
+    font-size: 14px; color: var(--ink-mute); max-width: 480px; line-height: 1.55;
+  }
+  .state-actions { margin-top: 24px; display: flex; gap: 10px; }
+
+  /* ---------- Header ---------- */
+  header.masthead {
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: end;
+  }
+  .brand-mark {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--display); font-style: italic; font-weight: 400;
+    font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 14px;
+  }
+  .brand-mark::before { content: ""; width: 36px; height: 1px; background: var(--ink); }
+  h1.title {
+    font-family: var(--display); font-weight: 400;
+    font-size: clamp(34px, 4.2vw, 52px); line-height: 1;
+    letter-spacing: -0.02em; color: var(--ink);
+  }
+  h1.title em { font-style: italic; font-weight: 300; color: var(--terracotta); }
+  .subtitle { margin-top: 14px; font-size: 14px; color: var(--ink-mute); }
+  .toolbar { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .toolbar-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn {
+    border: 1px solid var(--ink); background: transparent; color: var(--ink);
+    padding: 9px 16px; font-family: var(--body); font-size: 12px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+    transition: all 0.18s ease; white-space: nowrap; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .btn:hover { background: var(--ink); color: var(--surface); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.primary { background: var(--ink); color: var(--surface); }
+  .btn.primary:hover { background: var(--terracotta); border-color: var(--terracotta); }
+  @media (max-width: 720px) {
+    header.masthead { grid-template-columns: 1fr; }
+    .toolbar { align-items: flex-start; }
+  }
+
+  /* ---------- Layout ---------- */
+  .section-label {
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-mute);
+    margin: 0 0 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::before, .section-label::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+  .section-label span { padding: 0 8px; }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 24px;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 900px) { .result-grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 28px;
+    position: relative;
+  }
+
+  /* Respondent card */
+  .respondent-card .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+    margin-top: 4px;
+  }
+  .respondent-card .field { display: flex; flex-direction: column; }
+  .respondent-card .lbl {
+    font-family: var(--display); font-style: italic; font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute);
+    margin-bottom: 3px;
+  }
+  .respondent-card .val { font-size: 14px; color: var(--ink); font-weight: 500; }
+  .respondent-card .val.faint { color: var(--ink-mute); font-weight: 400; font-style: italic; font-family: var(--display); }
+  .respondent-card .meta {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dotted var(--line);
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-mute);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Overall card */
+  .overall-card { text-align: center; padding: 36px 28px; }
+  .overall-grade {
+    font-family: var(--display); font-weight: 300; font-size: 130px;
+    line-height: 0.85; letter-spacing: -0.05em;
+  }
+  .overall-grade.s { color: var(--g-S); }
+  .overall-grade.a { color: var(--g-A); }
+  .overall-grade.b { color: var(--g-B); }
+  .overall-grade.c { color: var(--g-C); }
+  .overall-grade.d { color: var(--g-D); }
+  .overall-grade.n { color: var(--g-none); font-size: 80px; }
+  .overall-grade-label {
+    font-family: var(--display); font-style: italic; font-size: 18px;
+    color: var(--ink-soft); margin-top: 4px;
+  }
+  .overall-score-row {
+    margin-top: 18px;
+    font-family: var(--display);
+    font-size: 26px;
+    color: var(--ink);
+  }
+  .overall-score-row .mute { color: var(--ink-mute); font-size: 18px; }
+  .overall-bar {
+    height: 4px; background: var(--line-soft); margin: 18px 0 14px;
+    position: relative; overflow: hidden;
+  }
+  .overall-bar-fill {
+    position: absolute; inset: 0 auto 0 0;
+    background: linear-gradient(90deg, var(--g-D), var(--g-C), var(--mocha), var(--g-A), var(--g-S));
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .overall-verdict {
+    font-size: 13.5px; color: var(--ink-soft); line-height: 1.55;
+    font-family: var(--display); font-style: italic;
+    max-width: 320px; margin: 0 auto;
+  }
+
+  /* Domain grid (4 cards) */
+  .domain-grid-large {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1px;
+    background: var(--line); border: 1px solid var(--line);
+    margin-bottom: 36px;
+  }
+  @media (max-width: 900px) { .domain-grid-large { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .domain-grid-large { grid-template-columns: 1fr; } }
+  .domain-card-l { background: var(--surface); padding: 22px 20px 20px; }
+  .domain-card-l .head {
+    display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;
+  }
+  .domain-card-l .name {
+    font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; min-height: 36px;
+  }
+  .domain-card-l .grade {
+    font-family: var(--display); font-weight: 400; font-size: 30px; line-height: 0.9;
+  }
+  .domain-card-l .grade.s { color: var(--g-S); }
+  .domain-card-l .grade.a { color: var(--g-A); }
+  .domain-card-l .grade.b { color: var(--g-B); }
+  .domain-card-l .grade.c { color: var(--g-C); }
+  .domain-card-l .grade.d { color: var(--g-D); }
+  .domain-card-l .grade.n { color: var(--g-none); }
+  .domain-card-l .stat {
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    color: var(--ink-mute);
+  }
+  .domain-card-l .stat .num {
+    font-style: normal; font-weight: 500; color: var(--ink);
+    font-size: 18px; font-family: var(--body); margin-right: 2px;
+  }
+  .domain-card-l .bar {
+    height: 2px; background: var(--line-soft); margin-top: 14px;
+    position: relative; overflow: hidden;
+  }
+  .domain-card-l .bar-fill { position: absolute; inset: 0 auto 0 0; transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+  .domain-card-l .bar-fill.s { background: var(--g-S); }
+  .domain-card-l .bar-fill.a { background: var(--g-A); }
+  .domain-card-l .bar-fill.b { background: var(--g-B); }
+  .domain-card-l .bar-fill.c { background: var(--g-C); }
+  .domain-card-l .bar-fill.d { background: var(--g-D); }
+  .domain-card-l .verdict {
+    font-size: 12px; color: var(--ink-soft); line-height: 1.4;
+    margin-top: 12px; font-family: var(--display); font-style: italic;
+  }
+
+  /* Radar */
+  .radar-block {
+    background: var(--surface); border: 1px solid var(--line);
+    padding: 28px; margin-bottom: 36px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center;
+  }
+  @media (max-width: 900px) { .radar-block { grid-template-columns: 1fr; } }
+  .radar-large-wrap svg { width: 100%; max-width: 420px; display: block; margin: 0 auto; }
+  .radar-grid { fill: none; stroke: var(--line); stroke-width: 0.5; }
+  .radar-axis { stroke: var(--line); stroke-width: 0.5; }
+  .radar-area { fill: var(--terracotta); fill-opacity: 0.18; stroke: var(--terracotta); stroke-width: 1.5; }
+  .radar-point { fill: var(--surface); stroke: var(--terracotta); stroke-width: 1.5; }
+  .radar-label { font-family: var(--body); font-size: 11px; font-weight: 500; fill: var(--ink-soft); letter-spacing: 0.04em; }
+  .radar-tick { font-family: var(--body); font-size: 9px; fill: var(--ink-mute); }
+
+  .balance-readout h3 {
+    font-family: var(--display); font-weight: 400; font-size: 22px;
+    color: var(--ink); margin-bottom: 12px; letter-spacing: -0.01em;
+  }
+  .balance-readout p {
+    font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; margin-bottom: 10px;
+  }
+  .balance-readout strong { color: var(--ink); font-weight: 600; }
+  .balance-readout .accent { color: var(--terracotta); font-weight: 600; }
+
+  /* Insights */
+  .insights-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 36px;
+  }
+  @media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } }
+  .insight-panel { background: var(--surface); border: 1px solid var(--line); padding: 24px 28px 20px; }
+  .insight-panel .head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  .insight-panel .head h3 {
+    font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: -0.01em;
+  }
+  .insight-panel.weak .head h3 em { color: var(--terracotta); font-style: italic; font-weight: 300; }
+  .insight-panel.strong .head h3 em { color: var(--olive); font-style: italic; font-weight: 300; }
+  .insight-panel .head .count {
+    font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink-mute);
+  }
+  .insight-list-r { list-style: none; }
+  .insight-list-r .item {
+    padding: 11px 0; border-bottom: 1px dotted var(--line);
+    display: grid; grid-template-columns: 24px 1fr auto; gap: 12px; align-items: start;
+  }
+  .insight-list-r .item:last-child { border-bottom: none; }
+  .insight-list-r .n { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink-mute); }
+  .insight-list-r .text { font-size: 12.8px; line-height: 1.5; color: var(--ink); }
+  .insight-list-r .dom {
+    display: block; font-family: var(--display); font-style: italic; font-size: 10px;
+    color: var(--ink-mute); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 3px;
+  }
+  .insight-list-r .sc { font-family: var(--display); font-weight: 500; font-size: 19px; line-height: 1.2; }
+  .insight-list-r .sc.weak { color: var(--terracotta); }
+  .insight-list-r .sc.strong { color: var(--olive); }
+  .insight-empty-r {
+    text-align: center; padding: 32px 16px; color: var(--ink-mute);
+    font-style: italic; font-family: var(--display); font-size: 13px;
+  }
+
+  /* Memos */
+  .memos-section { background: var(--surface); border: 1px solid var(--line); padding: 28px; margin-bottom: 36px; }
+  .memo-list { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+  .memo-card {
+    background: var(--bg); padding: 16px 20px;
+    border-left: 3px solid var(--terracotta);
+  }
+  .memo-card .meta {
+    font-family: var(--display); font-style: italic; font-size: 11.5px;
+    color: var(--ink-mute); margin-bottom: 6px;
+  }
+  .memo-card .meta .sc {
+    font-style: normal; color: var(--ink); font-weight: 500; font-size: 13px; font-family: var(--body);
+  }
+  .memo-card .qtext { font-size: 13px; color: var(--ink); margin-bottom: 8px; font-weight: 500; }
+  .memo-card .mtext { font-size: 13px; color: var(--ink-soft); line-height: 1.55; white-space: pre-wrap; }
+
+  /* CTA */
+  .result-cta {
+    background: var(--bg-deep);
+    border: 1px solid var(--ink);
+    padding: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .result-cta .text h3 {
+    font-family: var(--display); font-weight: 400; font-size: 24px; margin-bottom: 4px;
+  }
+  .result-cta .text p {
+    font-size: 13.5px; color: var(--ink-soft); font-family: var(--display); font-style: italic;
+  }
+  .result-cta .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Footer */
+  footer.result-footer {
+    margin-top: 56px; padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    color: var(--ink-mute); letter-spacing: 0.06em;
+    flex-wrap: wrap; gap: 12px;
+  }
+
+  /* ---------- PDF Report (hidden, identical to index.html) ---------- */
+  .pdf-report-wrap { position: fixed; left: -10000px; top: 0; width: 794px; z-index: -1; }
+  .pdf-page {
+    width: 794px; height: 1123px; background: var(--surface);
+    padding: 56px 56px 48px; box-sizing: border-box;
+    font-family: var(--body); color: var(--ink); position: relative; overflow: hidden;
+  }
+  .pdf-page-bg {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(at 5% 5%, rgba(184,92,56,0.05) 0%, transparent 35%),
+      radial-gradient(at 95% 95%, rgba(74,103,65,0.04) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .pdf-page > * { position: relative; }
+  .pdf-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 18px; border-bottom: 1px solid var(--ink); margin-bottom: 28px;
+  }
+  .pdf-header-left .eyebrow {
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 4px;
+  }
+  .pdf-header-left .title {
+    font-family: var(--display); font-weight: 400; font-size: 28px; color: var(--ink);
+    letter-spacing: -0.015em;
+  }
+  .pdf-header-left .title em { font-style: italic; color: var(--terracotta); font-weight: 300; }
+  .pdf-header-right {
+    text-align: right; font-family: var(--display); font-style: italic;
+    font-size: 11px; color: var(--ink-mute); letter-spacing: 0.05em;
+  }
+  .pdf-header-right .date { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .pdf-respondent {
+    background: var(--bg-deep); padding: 18px 22px; margin-bottom: 24px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px 24px;
+  }
+  .pdf-respondent .field { display: flex; flex-direction: column; }
+  .pdf-respondent .lbl {
+    font-family: var(--display); font-style: italic; font-size: 9px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 2px;
+  }
+  .pdf-respondent .val { font-size: 13px; color: var(--ink); font-weight: 500; }
+  .pdf-overall {
+    display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: center;
+    padding: 32px 28px; background: var(--bg); margin-bottom: 24px;
+    border: 1px solid var(--line);
+  }
+  .pdf-overall .grade-block { text-align: center; }
+  .pdf-overall .grade-letter {
+    font-family: var(--display); font-weight: 300; font-size: 110px; line-height: 0.9;
+    letter-spacing: -0.05em;
+  }
+  .pdf-overall .grade-letter.s { color: var(--g-S); }
+  .pdf-overall .grade-letter.a { color: var(--g-A); }
+  .pdf-overall .grade-letter.b { color: var(--g-B); }
+  .pdf-overall .grade-letter.c { color: var(--g-C); }
+  .pdf-overall .grade-letter.d { color: var(--g-D); }
+  .pdf-overall .grade-letter.n { color: var(--g-none); font-size: 64px; }
+  .pdf-overall .grade-label { font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+  .pdf-overall .score-block .score-eyebrow {
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 6px;
+  }
+  .pdf-overall .score-block .score-num {
+    font-family: var(--display); font-size: 42px; font-weight: 400; color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .pdf-overall .score-block .score-num .mute { color: var(--ink-mute); font-size: 22px; }
+  .pdf-overall .score-bar { height: 4px; background: var(--line-soft); margin-top: 12px; position: relative; overflow: hidden; }
+  .pdf-overall .score-bar-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--g-D), var(--g-C), var(--mocha), var(--g-A), var(--g-S)); }
+  .pdf-overall .verdict { font-size: 12.5px; color: var(--ink-soft); margin-top: 12px; font-style: italic; font-family: var(--display); line-height: 1.4; }
+  .pdf-section-label {
+    font-family: var(--display); font-style: italic; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-mute);
+    margin: 0 0 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .pdf-section-label::before, .pdf-section-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .pdf-section-label span { padding: 0 6px; }
+  .pdf-domain-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line);
+    border: 1px solid var(--line); margin-bottom: 24px;
+  }
+  .pdf-domain-cell { background: var(--bg); padding: 16px 18px; }
+  .pdf-domain-cell .row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .pdf-domain-cell .name { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .pdf-domain-cell .grade { font-family: var(--display); font-size: 24px; line-height: 1; font-weight: 400; }
+  .pdf-domain-cell .grade.s { color: var(--g-S); }
+  .pdf-domain-cell .grade.a { color: var(--g-A); }
+  .pdf-domain-cell .grade.b { color: var(--g-B); }
+  .pdf-domain-cell .grade.c { color: var(--g-C); }
+  .pdf-domain-cell .grade.d { color: var(--g-D); }
+  .pdf-domain-cell .grade.n { color: var(--g-none); }
+  .pdf-domain-cell .stat { font-family: var(--display); font-style: italic; font-size: 11px; color: var(--ink-mute); }
+  .pdf-domain-cell .stat .num { font-style: normal; color: var(--ink); font-weight: 500; font-size: 14px; font-family: var(--body); margin-right: 2px; }
+  .pdf-domain-cell .bar { height: 2px; background: var(--line-soft); margin-top: 10px; position: relative; overflow: hidden; }
+  .pdf-domain-cell .bar-fill { position: absolute; inset: 0 auto 0 0; }
+  .pdf-domain-cell .bar-fill.s { background: var(--g-S); }
+  .pdf-domain-cell .bar-fill.a { background: var(--g-A); }
+  .pdf-domain-cell .bar-fill.b { background: var(--g-B); }
+  .pdf-domain-cell .bar-fill.c { background: var(--g-C); }
+  .pdf-domain-cell .bar-fill.d { background: var(--g-D); }
+  .pdf-radar-wrap { display: flex; justify-content: center; margin: 8px 0 16px; }
+  .pdf-radar-wrap svg { width: 320px; height: 280px; }
+  .pdf-list { list-style: none; }
+  .pdf-list .item {
+    padding: 11px 0; border-bottom: 1px dotted var(--line);
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: start;
+  }
+  .pdf-list .item:last-child { border-bottom: none; }
+  .pdf-list .n { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink-mute); }
+  .pdf-list .text { font-size: 12.5px; line-height: 1.45; color: var(--ink); }
+  .pdf-list .dom { display: block; font-family: var(--display); font-style: italic; font-size: 10px; color: var(--ink-mute); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+  .pdf-list .sc { font-family: var(--display); font-weight: 500; font-size: 18px; }
+  .pdf-list .sc.weak { color: var(--terracotta); }
+  .pdf-list .sc.strong { color: var(--olive); }
+  .pdf-list .empty { text-align: center; padding: 28px; color: var(--ink-mute); font-style: italic; font-family: var(--display); font-size: 13px; }
+  .pdf-footer {
+    position: absolute; bottom: 24px; left: 56px; right: 56px;
+    padding-top: 12px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between;
+    font-family: var(--display); font-style: italic; font-size: 10px;
+    color: var(--ink-mute); letter-spacing: 0.06em;
+  }
+  .pdf-memos { display: flex; flex-direction: column; gap: 14px; }
+  .pdf-memo { background: var(--bg); padding: 14px 16px; border-left: 2px solid var(--terracotta); }
+  .pdf-memo .meta { font-family: var(--display); font-style: italic; font-size: 11px; color: var(--ink-mute); margin-bottom: 6px; }
+  .pdf-memo .meta .sc { font-style: normal; color: var(--ink); font-weight: 500; font-size: 13px; font-family: var(--body); }
+  .pdf-memo .qtext { font-size: 12.5px; color: var(--ink); margin-bottom: 8px; font-weight: 500; }
+  .pdf-memo .mtext { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Loading state -->
+  <div id="loading-state" class="state-block">
+    <div class="state-icon loading"></div>
+    <div class="state-eyebrow">Loading Result</div>
+    <div class="state-title">결과를 불러오고 있습니다</div>
+    <div class="state-msg">Supabase에서 응답 데이터를 가져오는 중입니다. 잠시만 기다려주세요.</div>
+  </div>
+
+  <!-- Error state -->
+  <div id="error-state" class="state-block" style="display:none;">
+    <div class="state-icon error">!</div>
+    <div class="state-eyebrow" id="err-eyebrow">Error</div>
+    <div class="state-title" id="err-title">결과를 찾을 수 없습니다</div>
+    <div class="state-msg" id="err-msg">URL이 올바른지, 또는 응답이 정상적으로 제출됐는지 확인해주세요.</div>
+    <div class="state-actions">
+      <a href="index.html" class="btn primary">자가진단 시작 페이지로</a>
+    </div>
+  </div>
+
+  <!-- Result content -->
+  <div id="result-content" style="display:none;">
+
+    <header class="masthead">
+      <div>
+        <div class="brand-mark">Self-Diagnostic · Result Report</div>
+        <h1 class="title">브랜드 <em>자가진단</em> 결과</h1>
+        <p class="subtitle">이 페이지는 응답 제출 후 자동 생성된 결과 보고서입니다. URL을 북마크하면 언제든 다시 확인할 수 있습니다.</p>
+      </div>
+      <div class="toolbar">
+        <div class="toolbar-row">
+          <a href="index.html" class="btn">다시 진단하기</a>
+          <button class="btn primary" id="btn-pdf">PDF 저장</button>
+        </div>
+        <div style="font-family: var(--display); font-style: italic; font-size: 11px; color: var(--ink-mute);" id="submission-meta">—</div>
+      </div>
+    </header>
+
+    <div class="result-grid">
+      <div class="panel respondent-card">
+        <div class="section-label" style="margin-bottom: 14px;"><span>Respondent · 응답자</span></div>
+        <div class="field-grid" id="respondent-grid"></div>
+        <div class="meta">
+          <span id="submitted-at">—</span>
+          <span id="answered-count">—</span>
+        </div>
+      </div>
+      <div class="panel overall-card">
+        <div class="section-label" style="margin-bottom: 6px;"><span>Overall · 종합 진단</span></div>
+        <div class="overall-grade n" id="overall-grade">—</div>
+        <div class="overall-grade-label" id="overall-grade-label">—</div>
+        <div class="overall-score-row">
+          <span id="overall-score">0</span><span class="mute"> / 600</span>
+        </div>
+        <div class="overall-bar"><div class="overall-bar-fill" id="overall-bar"></div></div>
+        <div class="overall-verdict" id="overall-verdict">—</div>
+      </div>
+    </div>
+
+    <div class="section-label"><span>By Area · 분야별 진단</span></div>
+    <div class="domain-grid-large" id="domain-grid"></div>
+
+    <div class="section-label"><span>Balance · 분야 균형도</span></div>
+    <div class="radar-block">
+      <div class="radar-large-wrap">
+        <svg viewBox="0 0 420 380" id="radar-large"></svg>
+      </div>
+      <div class="balance-readout" id="balance-readout"></div>
+    </div>
+
+    <div class="section-label"><span>Insights · 약점·강점</span></div>
+    <div class="insights-grid">
+      <div class="insight-panel weak">
+        <div class="head"><h3>약점 <em>Top 10</em></h3><span class="count" id="weak-count">0</span></div>
+        <ul class="insight-list-r" id="weak-list"></ul>
+      </div>
+      <div class="insight-panel strong">
+        <div class="head"><h3>강점 <em>Top 10</em></h3><span class="count" id="strong-count">0</span></div>
+        <ul class="insight-list-r" id="strong-list"></ul>
+      </div>
+    </div>
+
+    <div id="memos-block" style="display:none;">
+      <div class="section-label"><span>Memos · 메모</span></div>
+      <div class="memos-section">
+        <div class="memo-list" id="memo-list"></div>
+      </div>
+    </div>
+
+    <div class="result-cta">
+      <div class="text">
+        <h3>다음 단계</h3>
+        <p>분기·반기 단위로 다시 진단해 변화 추이를 확인하세요. URL을 북마크하면 결과를 언제든 다시 볼 수 있습니다.</p>
+      </div>
+      <div class="actions">
+        <a href="index.html" class="btn">다시 진단하기</a>
+        <button class="btn primary" id="btn-pdf-2">PDF 저장</button>
+      </div>
+    </div>
+
+    <footer class="result-footer">
+      <span>Brand Self-Diagnostic · TAAD</span>
+      <span id="footer-id">—</span>
+    </footer>
+  </div>
+
+</div>
+
+<!-- Hidden PDF report -->
+<div class="pdf-report-wrap" id="pdf-report" aria-hidden="true"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// Supabase 설정 — index.html과 동일한 값을 입력하세요
+// ═══════════════════════════════════════════════════════════════════
+const SUPABASE_CONFIG = {
+  PROJECT_URL: 'YOUR_SUPABASE_URL_HERE',
+  ANON_KEY:    'YOUR_SUPABASE_ANON_KEY_HERE'
+};
+// ═══════════════════════════════════════════════════════════════════
+
+// ============ DOMAINS (진단 문항 텍스트) ============
+const DOMAINS = [
+  { id: 'channel', num: '01', name: '채널·유통 전략', short: '채널·유통',
+    items: [
+      "우리 브랜드가 입점한 주력 플랫폼(예: 무신사·29CM 등)이 명확히 정해져 있다.",
+      "해당 플랫폼의 메인 노출과 검색 결과가 어떤 기준으로 작동하는지 대략 이해하고 있다.",
+      "상품 등록 시 카테고리·태그·해시태그를 검색에 잘 잡히도록 정확히 설정하고 있다.",
+      "상품 썸네일(대표 이미지)이 다른 브랜드 상품과 구분되도록 의식해서 만들고 있다.",
+      "상세페이지에 모델컷·디테일컷·착용샷 등 충분한 양의 사진을 사용하고 있다.",
+      "사이즈·소재·핏 등 구매 결정에 필요한 정보를 빠짐없이 기재하고 있다.",
+      "검색 키워드(소재·핏·스타일·시즌 등)를 의도적으로 상품명·설명에 반영하고 있다.",
+      "신규 상품을 일정한 주기(예: 매주, 매월)로 꾸준히 등록·업데이트하고 있다.",
+      "봄·여름·가을·겨울 등 시즌에 맞는 상품을 미리 기획해 등록한다.",
+      "베스트 셀러 상품과 그렇지 않은 상품의 차이를 살펴본 적이 있다.",
+      "플랫폼 내 검색 결과에서 우리 상품의 노출 순위를 가끔이라도 확인한다.",
+      "플랫폼이 제공하는 광고 상품(검색·노출 광고 등)을 한 번 이상 사용해본 경험이 있다.",
+      "광고를 집행할 때 광고비 대비 매출(ROAS)이 어느 정도인지 감을 잡고 있다.",
+      "플랫폼의 기획전·라이브·세일 페이지 등에 적극적으로 신청·참여하고 있다.",
+      "플랫폼 MD 또는 담당자와 가끔이라도 소통하며 노출 기회를 협의한다.",
+      "시즌 세일, 쿠폰, 할인 행사 일정을 미리 파악해 준비한다.",
+      "가격 정책(정상가·할인가)이 우리 브랜드 안에서 일관성 있게 관리되고 있다.",
+      "옵션(사이즈·컬러)별 재고 현황을 자주 확인하고 결품을 줄이고 있다.",
+      "잘 팔리는 옵션(인기 사이즈·컬러)은 사전에 충분한 재고를 확보한다.",
+      "리뷰와 별점(평점)을 일주일에 한 번 이상 확인한다.",
+      "부정 리뷰에 진정성 있게 답글을 달거나 응대하는 기준을 가지고 있다.",
+      "좋은 리뷰가 더 많이 남도록 유도하는 활동(포토 리뷰 적립금 등)을 하고 있다.",
+      "리뷰에서 반복적으로 나오는 장점·단점을 상품 개선이나 마케팅에 활용한다.",
+      "주문 후 출고까지 평균 며칠이 걸리는지 알고 있고, 단축하기 위해 노력한다.",
+      "배송 사고(파손·오배송·지연) 발생 시 처리 절차가 정해져 있다.",
+      "반품·교환 요청에 일관된 기준으로 신속하게 응대한다.",
+      "CS 문의에 대한 평균 응답 시간을 신경 써서 관리하고 있다.",
+      "일별·주별 매출 데이터를 정기적으로 확인하고 있다.",
+      "어떤 상품이 어느 시기에 가장 잘 팔리는지 패턴을 어느 정도 알고 있다.",
+      "한 플랫폼에만 의존하지 않도록 다른 채널·플랫폼도 함께 검토하고 있다."
+    ]
+  },
+  { id: 'brand', num: '02', name: '브랜딩 전략', short: '브랜딩',
+    items: [
+      "우리 브랜드의 미션·비전·핵심 가치가 명확히 정의되어 문서화되어 있다.",
+      "브랜드의 타깃 고객(페르소나)을 인구통계, 라이프스타일, 구매동기 수준에서 구체적으로 묘사할 수 있다.",
+      "경쟁 브랜드 대비 우리 브랜드의 차별점을 한 문장으로 설명할 수 있다.",
+      "브랜드 슬로건·태그라인이 있고 모든 채널에서 일관되게 사용된다.",
+      "로고·컬러·폰트 등 비주얼 아이덴티티가 가이드라인으로 문서화되어 있다.",
+      "모든 채널의 콘텐츠가 동일한 톤앤매너로 제작되고 있다.",
+      "패키지 디자인이 브랜드 정체성을 잘 표현하고, 경쟁사와 시각적으로 구분된다.",
+      "상세페이지의 디자인·카피·사진 스타일이 통일되어 있다.",
+      "브랜드 스토리(창업 배경·철학·문제의식)가 정리되어 있고 고객 접점에서 활용된다.",
+      "브랜드 네이밍에 대해 명확한 의미와 발음·검색 편의성이 검토되었다.",
+      "브랜드명·로고 등에 대한 상표권이 등록·관리되고 있다.",
+      "브랜드 도메인, SNS 핸들 등이 통일된 형태로 확보되어 있다.",
+      "자사몰의 UX·UI가 브랜드 정체성을 잘 반영하고 있다.",
+      "SNS 피드의 비주얼 일관성(컬러, 구도, 톤)이 유지되고 있다.",
+      "고객 응대(CS) 시 사용되는 말투와 표현이 브랜드 톤에 맞춰 가이드되어 있다.",
+      "언박싱 경험(택배 박스, 동봉물, 인사 카드 등)이 의도적으로 디자인되어 있다.",
+      "신규 직원이 1시간 내에 브랜드의 핵심 메시지를 학습할 수 있는 자료가 있다.",
+      "매장·팝업·전시 등 오프라인 공간에서도 브랜드 정체성이 일관되게 표현된다.",
+      "협업·콜라보 시 브랜드 톤을 해치지 않기 위한 기준과 가이드가 있다.",
+      "고객이 우리 브랜드를 어떻게 인식하는지 설문·인터뷰 등으로 직접 확인한 경험이 있다.",
+      "브랜드의 가격 포지셔닝(저가·중가·프리미엄)이 명확하고, 그에 맞는 경험을 제공한다.",
+      "제품 카테고리 확장 시에도 브랜드 일관성을 유지하기 위한 기준이 있다.",
+      "브랜드 인플루언서·앰버서더·팬과의 관계 운영 원칙이 정해져 있다.",
+      "브랜드의 사회적 메시지(지속가능성·ESG·로컬·핸드메이드 등)가 명확히 정의되어 있다.",
+      "충성 고객을 위한 별도의 브랜드 경험(시크릿 세일, 한정판, VIP 이벤트 등)을 운영한다.",
+      "브랜드의 강점·약점을 정기적으로 점검하고 리브랜딩 시점을 판단할 수 있다.",
+      "경쟁 브랜드 대비 인지도·호감도·추천의향 등을 추적할 수 있는 지표가 있다.",
+      "브랜드 관련 콘텐츠(영상·사진·카피)가 충분히 축적되어 자산화되어 있다.",
+      "위기 상황(루머·클레임·사고 등) 발생 시 브랜드 대응 매뉴얼이 마련되어 있다.",
+      "향후 3~5년의 브랜드 비전과 성장 단계별 모습이 그려져 있다."
+    ]
+  },
+  { id: 'marketing', num: '03', name: '마케팅 전략', short: '마케팅',
+    items: [
+      "분기·연간 마케팅 목표(매출, 신규 고객, 재구매율 등)가 수치로 설정되어 있다.",
+      "타깃 고객의 구매 여정(인지→관심→구매→재구매)이 매핑되어 있다.",
+      "핵심 마케팅 KPI(CAC, LTV, ROAS 등)를 알고 있고 정기적으로 측정한다.",
+      "월별 마케팅 예산이 채널별로 배분되어 집행되고 있다.",
+      "콘텐츠 마케팅(블로그·유튜브·매거진 등) 콘텐츠 캘린더가 운영되고 있다.",
+      "인스타그램·틱톡·유튜브 등 SNS 플랫폼별 운영 전략이 차별화되어 있다.",
+      "SNS 운영 시 정기적인 게시 주기와 형식(요일별·주제별)이 정해져 있다.",
+      "브랜디드 콘텐츠와 판매성 콘텐츠의 비중이 의도적으로 관리되고 있다.",
+      "인플루언서·리뷰어 협업 시 선정 기준과 ROI 측정 체계가 있다.",
+      "검색 광고(네이버·구글·쿠팡 등)와 디스플레이 광고를 분리해 성과를 분석하고 있다.",
+      "광고 소재(이미지·영상·카피)에 대한 A/B 테스트를 정기적으로 진행한다.",
+      "자사몰 SEO(검색 엔진 최적화) 또는 플랫폼 내 검색 노출 최적화를 진행하고 있다.",
+      "신규 고객 유입 채널과 재구매 유도 채널이 명확하게 구분되어 있다.",
+      "이메일·카카오·문자 등 CRM 채널을 통해 정기적으로 고객과 소통하고 있다.",
+      "회원 등급제·적립금·쿠폰 등 리텐션 프로그램이 운영되고 있다.",
+      "고객 데이터(가입·구매·클릭)를 세그먼트별로 관리하고 마케팅에 활용한다.",
+      "신상품 출시 시 사전 공지→티저→출시→후기 단계의 마케팅 흐름이 설계되어 있다.",
+      "시즌 프로모션·행사 마케팅의 사전 기획안과 사후 리뷰가 진행된다.",
+      "광고비 대비 매출(ROAS)뿐 아니라, 마케팅 활동의 브랜드 기여도도 함께 평가한다.",
+      "모바일 유입(앱·모웹) 기준의 UX 최적화와 전환율 점검을 진행한다.",
+      "랜딩 페이지·상세 페이지의 전환율을 정기적으로 측정하고 개선한다.",
+      "장바구니 이탈, 결제 이탈에 대한 리타게팅(리마인드) 마케팅이 운영된다.",
+      "신규 콘텐츠 포맷(쇼츠·릴스·라이브 등)을 적극적으로 테스트하고 있다.",
+      "오프라인 이벤트·팝업·박람회 참여를 통해 직접적인 브랜드 경험을 제공한다.",
+      "팔로워 수보다 활성 팬(active fan) 수와 참여도를 더 중요한 지표로 본다.",
+      "고객 후기(UGC)를 적극적으로 수집·활용하는 시스템이 있다.",
+      "마케팅 협업 파트너(에이전시·스튜디오)와의 R&R과 KPI가 명확하다.",
+      "마케팅 데이터를 통합 대시보드로 보고 의사결정에 활용한다.",
+      "경쟁사의 마케팅 활동(광고·프로모션·콘텐츠)을 정기적으로 분석한다.",
+      "향후 12개월의 마케팅 전략 로드맵과 분기별 핵심 캠페인이 정의되어 있다."
+    ]
+  },
+  { id: 'tax', num: '04', name: '세무·회계 전략', short: '세무·회계',
+    items: [
+      "사업자 통장과 개인 통장이 분리되어 운영되고 있다.",
+      "매출과 매입이 매월 정확하게 기록·마감되고 있다.",
+      "회계 프로그램(더존·세무회계 SaaS·뱅크샐러드 비즈 등)을 사용해 장부를 관리하고 있다.",
+      "매월 손익계산서(P&L)를 작성하고 경영지표로 활용하고 있다.",
+      "재고자산을 정기적으로 실사하고 장부와 일치시키고 있다.",
+      "매출원가(원재료·생산·물류)를 정확히 산정하고 있다.",
+      "채널별·상품별·SKU별 마진율을 알고 있다.",
+      "고정비(인건비·임대료·구독료 등)와 변동비를 구분해 관리하고 있다.",
+      "손익분기점(BEP) 매출 수준을 알고 있다.",
+      "향후 3~6개월의 자금 수지(현금 흐름)를 예측·관리하고 있다.",
+      "부가가치세 신고 시 매입세액 누락 방지를 위한 증빙 관리가 잘 되어 있다.",
+      "종합소득세·법인세 신고에 대비해 사전에 절세 시뮬레이션을 한다.",
+      "인건비, 사업소득, 기타소득 등 인적 비용 관련 원천세 신고가 관리되고 있다.",
+      "4대 보험과 노무 관련 신고·관리가 누락 없이 진행되고 있다.",
+      "신용카드·현금영수증 등 비용 증빙을 누락 없이 처리하고 있다.",
+      "현금 매출에 대해서도 정직하게 신고하고 있으며 누락이 없다.",
+      "매출채권(외상)과 매입채무(미지급)를 별도로 관리하고 있다.",
+      "거래처 신용도(부도·미수) 리스크가 모니터링되고 있다.",
+      "사업과 관련된 세제 혜택(중소기업 특례·창업감면 등)을 검토·활용하고 있다.",
+      "정부지원사업·정책자금·융자 정보를 주기적으로 확인하고 있다.",
+      "거래하는 세무사·회계사와 정기적으로 미팅하며 경영 자문을 받고 있다.",
+      "사업체 명의 자산(차량·부동산·지식재산권)이 적절하게 관리되고 있다.",
+      "법인의 경우 가지급금·대표이사 차입금이 적정 수준으로 관리되고 있다.",
+      "자본금·출자·투자 등 지분 구조에 대해 명확히 이해하고 있다.",
+      "주요 계약서(임대차·거래·라이선스)가 문서화되고 보관되고 있다.",
+      "사업과 관련된 보험(화재·배상·재고)이 적절히 가입되어 있다.",
+      "매출 규모와 단계에 맞는 사업 형태(개인·법인 전환 등)를 검토한 적이 있다.",
+      "세무 조사·분쟁에 대비한 증빙과 자료가 체계적으로 보관되고 있다.",
+      "재무제표를 기반으로 다음 해 사업 계획과 예산을 수립하고 있다.",
+      "사업 매각·승계·종료 등 출구 전략(exit plan)을 한 번이라도 검토해본 적이 있다."
+    ]
+  }
+];
+
+// ============ HELPERS ============
+function gradeForDomain(score, answered) {
+  if (answered === 0) return {letter:'—', label:'미입력', cls:'n', verdict:'점수가 입력되지 않았습니다.'};
+  if (score >= 135) return {letter:'S', label:'탁월', cls:'s', verdict:'체계화·고도화 단계. 외부 확장과 자산화에 집중할 시점.'};
+  if (score >= 120) return {letter:'A', label:'우수', cls:'a', verdict:'기본기는 안정적. 약점 항목을 보완하면 한 단계 도약 가능.'};
+  if (score >= 90)  return {letter:'B', label:'보통', cls:'b', verdict:'운영은 되고 있으나 표준화·문서화·측정이 부족.'};
+  if (score >= 60)  return {letter:'C', label:'취약', cls:'c', verdict:'주요 영역에 공백 존재. 우선순위 항목부터 정비 필요.'};
+  return                  {letter:'D', label:'위험', cls:'d', verdict:'기초 체력이 약한 상태. 외부 전문가의 도움을 권장.'};
+}
+function gradeOverall(score, answered) {
+  if (answered === 0) return {letter:'—', label:'미입력', cls:'n', verdict:'점수가 입력되지 않았습니다.'};
+  const per = score / 4;
+  if (per >= 135) return {letter:'S', label:'탁월', cls:'s', verdict:'전 분야 체계화·고도화 단계. 외부 확장과 자산화에 집중할 시점입니다.'};
+  if (per >= 120) return {letter:'A', label:'우수', cls:'a', verdict:'기본기는 안정적입니다. 약점 분야를 보완하면 한 단계 도약 가능합니다.'};
+  if (per >= 90)  return {letter:'B', label:'보통', cls:'b', verdict:'운영은 되고 있으나 표준화·문서화·측정이 부족한 영역이 있습니다.'};
+  if (per >= 60)  return {letter:'C', label:'취약', cls:'c', verdict:'주요 영역에 공백이 존재합니다. 우선순위 항목부터 정비가 필요합니다.'};
+  return                {letter:'D', label:'위험', cls:'d', verdict:'기초 체력이 약한 상태입니다. 외부 전문가의 도움을 권장합니다.'};
+}
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============ STATE (loaded from Supabase) ============
+let submission = null;        // 전체 row
+let scores = {};              // 점수
+let memos = {};               // 메모
+
+// ============ ERROR ============
+function showError(title, msg) {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('result-content').style.display = 'none';
+  const e = document.getElementById('error-state');
+  document.getElementById('err-title').textContent = title;
+  document.getElementById('err-msg').textContent = msg;
+  e.style.display = 'flex';
+}
+
+// ============ LOADING ============
+async function loadResult() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  if (!id) {
+    showError('잘못된 URL', '결과 페이지 URL에 응답 ID가 없습니다. URL이 ?id=... 형식인지 확인해주세요.');
+    return;
+  }
+  if (SUPABASE_CONFIG.PROJECT_URL === 'YOUR_SUPABASE_URL_HERE') {
+    showError('Supabase 미설정', 'HTML 파일 상단의 SUPABASE_CONFIG를 채워야 결과를 불러올 수 있습니다.');
+    return;
+  }
+  if (!window.supabase) {
+    showError('라이브러리 로드 실패', 'Supabase JS 라이브러리를 불러오지 못했습니다. 네트워크 연결을 확인해주세요.');
+    return;
+  }
+
+  // UUID 형식 검증
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    showError('잘못된 ID 형식', '응답 ID 형식이 올바르지 않습니다.');
+    return;
+  }
+
+  const sb = window.supabase.createClient(SUPABASE_CONFIG.PROJECT_URL, SUPABASE_CONFIG.ANON_KEY);
+
+  try {
+    const { data, error } = await sb
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') {
+        showError('결과를 찾을 수 없습니다', '해당 ID의 응답이 데이터베이스에 존재하지 않습니다. URL을 다시 확인해주세요.');
+      } else {
+        showError('데이터 로드 실패', `오류: ${error.message || error}`);
+      }
+      return;
+    }
+    if (!data) {
+      showError('결과를 찾을 수 없습니다', '응답 데이터가 비어 있습니다.');
+      return;
+    }
+    submission = data;
+    scores = data.scores || {};
+    memos = data.memos || {};
+    render();
+  } catch (err) {
+    console.error(err);
+    showError('네트워크 오류', `데이터를 가져오지 못했습니다: ${err.message || err}`);
+  }
+}
+
+// ============ AGGREGATE ============
+function domainStats(domainId) {
+  const dom = DOMAINS.find(d => d.id === domainId);
+  let sum = 0, count = 0;
+  for (let i = 0; i < dom.items.length; i++) {
+    const v = scores[`${domainId}:${i}`];
+    if (v) { sum += v; count++; }
+  }
+  return { sum, count, total: dom.items.length };
+}
+function overallStats() {
+  let sum = 0, count = 0, total = 0;
+  DOMAINS.forEach(d => {
+    total += d.items.length;
+    d.items.forEach((_, i) => {
+      const v = scores[`${d.id}:${i}`];
+      if (v) { sum += v; count++; }
+    });
+  });
+  return {sum, count, total, max: total * 5};
+}
+
+// ============ RENDER ============
+function render() {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('result-content').style.display = 'block';
+
+  renderRespondent();
+  renderOverall();
+  renderDomains();
+  renderRadarLarge();
+  renderInsights();
+  renderMemos();
+  renderFooter();
+}
+
+function renderRespondent() {
+  const fields = [
+    {l:'브랜드',    v: submission.brand_name || '—', strong: true},
+    {l:'담당자',    v: submission.contact_name || '—'},
+    {l:'이메일',    v: submission.email || '—'},
+    {l:'연락처',    v: submission.phone || '—', faint: !submission.phone},
+    {l:'사업 분야', v: submission.business_field || '—', faint: !submission.business_field},
+    {l:'월매출',    v: submission.revenue || '—', faint: !submission.revenue},
+    {l:'운영 기간', v: submission.duration || '—', faint: !submission.duration}
+  ];
+  document.getElementById('respondent-grid').innerHTML = fields.map(f => `
+    <div class="field">
+      <span class="lbl">${f.l}</span>
+      <span class="val ${f.faint ? 'faint' : ''}">${escapeHtml(f.v)}</span>
+    </div>
+  `).join('');
+
+  const submittedAt = submission.created_at
+    ? new Date(submission.created_at).toLocaleString('ko-KR', {year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'})
+    : '—';
+  document.getElementById('submitted-at').textContent = `제출 · ${submittedAt}`;
+  const o = overallStats();
+  document.getElementById('answered-count').textContent = `${o.count} / ${o.total} 응답`;
+  document.getElementById('submission-meta').textContent = `Submission ${submission.id.slice(0, 8)}… · ${submittedAt}`;
+}
+
+function renderOverall() {
+  const o = overallStats();
+  const g = gradeOverall(o.sum, o.count);
+  const el = document.getElementById('overall-grade');
+  el.textContent = g.letter;
+  el.className = 'overall-grade ' + g.cls;
+  document.getElementById('overall-grade-label').textContent = g.label;
+  document.getElementById('overall-score').textContent = o.sum;
+  document.getElementById('overall-bar').style.width = (o.max ? (o.sum/o.max)*100 : 0) + '%';
+  document.getElementById('overall-verdict').textContent = g.verdict;
+}
+
+function renderDomains() {
+  const grid = document.getElementById('domain-grid');
+  grid.innerHTML = DOMAINS.map(d => {
+    const s = domainStats(d.id);
+    const g = gradeForDomain(s.sum, s.count);
+    const pct = (s.sum / (d.items.length * 5)) * 100;
+    return `
+      <div class="domain-card-l">
+        <div class="head">
+          <div class="name">${d.name}</div>
+          <div class="grade ${g.cls}">${g.letter}</div>
+        </div>
+        <div class="stat"><span class="num">${s.sum}</span>/ 150 · ${s.count}/${s.total}문항</div>
+        <div class="bar"><div class="bar-fill ${g.cls}" style="width:${pct}%"></div></div>
+        <div class="verdict">${g.verdict}</div>
+      </div>`;
+  }).join('');
+}
+
+function buildRadarSVG(cx, cy, r, stats, labels) {
+  const angles = stats.map((_, i) => -Math.PI/2 + i * (Math.PI*2/4));
+  let grid = '';
+  for (let k = 1; k <= 5; k++) {
+    const rr = r * k / 5;
+    const pts = angles.map(a => `${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr}`).join(' ');
+    grid += `<polygon class="radar-grid" points="${pts}"></polygon>`;
+  }
+  angles.forEach(a => {
+    grid += `<line class="radar-axis" x1="${cx}" y1="${cy}" x2="${cx+Math.cos(a)*r}" y2="${cy+Math.sin(a)*r}"></line>`;
+  });
+  const pts = stats.map((s, i) => {
+    const pct = s.sum / 150;
+    const a = angles[i];
+    return `${cx+Math.cos(a)*r*pct},${cy+Math.sin(a)*r*pct}`;
+  }).join(' ');
+  let data = `<polygon class="radar-area" points="${pts}"></polygon>`;
+  stats.forEach((s, i) => {
+    const pct = s.sum / 150;
+    const a = angles[i];
+    data += `<circle class="radar-point" cx="${cx+Math.cos(a)*r*pct}" cy="${cy+Math.sin(a)*r*pct}" r="3.8"></circle>`;
+  });
+  let lbl = '';
+  labels.forEach((name, i) => {
+    const a = angles[i];
+    const lx = cx + Math.cos(a)*(r+26);
+    const ly = cy + Math.sin(a)*(r+26) + 4;
+    let anchor = 'middle';
+    if (Math.cos(a) > 0.2) anchor = 'start';
+    else if (Math.cos(a) < -0.2) anchor = 'end';
+    lbl += `<text class="radar-label" x="${lx}" y="${ly}" text-anchor="${anchor}">${name}</text>`;
+    lbl += `<text x="${lx}" y="${ly+15}" text-anchor="${anchor}" style="font-family:var(--display); font-style:italic; font-size:13px; fill:var(--ink-mute);">${stats[i].sum}</text>`;
+  });
+  let tick = '';
+  for (let k = 1; k <= 5; k++) {
+    tick += `<text class="radar-tick" x="${cx+5}" y="${cy - r*k/5 + 3}">${30*k}</text>`;
+  }
+  return grid + data + lbl + tick;
+}
+
+function renderRadarLarge() {
+  const stats = DOMAINS.map(d => domainStats(d.id));
+  const labels = DOMAINS.map(d => d.short);
+  document.getElementById('radar-large').innerHTML = buildRadarSVG(210, 190, 130, stats, labels);
+
+  // Balance readout
+  const sortedAsc = [...stats].map((s, i) => ({s, d: DOMAINS[i]})).sort((a,b) => a.s.sum - b.s.sum);
+  const sortedDesc = [...sortedAsc].reverse();
+  const max = sortedDesc[0], min = sortedAsc[0];
+  const gap = max.s.sum - min.s.sum;
+
+  let balanceText;
+  if (overallStats().count === 0) {
+    balanceText = '<p>점수가 입력되지 않았습니다.</p>';
+  } else if (gap < 15) {
+    balanceText = `
+      <p>4개 분야의 점수 편차가 <strong>${gap}점</strong>으로 균형이 잘 잡혀 있습니다.</p>
+      <p>특정 분야 보강보다 <span class="accent">전체 수준 끌어올리기</span>가 다음 과제입니다.</p>`;
+  } else if (gap < 40) {
+    balanceText = `
+      <p>최고 분야는 <strong>${max.d.name}</strong> (${max.s.sum}점), 최약 분야는 <span class="accent">${min.d.name}</span> (${min.s.sum}점)입니다. 점수 편차 <strong>${gap}점</strong>.</p>
+      <p>약점 분야를 평균 수준까지 끌어올리는 것이 우선입니다. 강점 분야는 자산화·홍보 자원으로 활용하세요.</p>`;
+  } else {
+    balanceText = `
+      <p>분야 간 편차가 <strong>${gap}점</strong>으로 크게 벌어져 있습니다. <span class="accent">${min.d.name}</span> 분야의 공백이 사업 전반의 위험 요소가 될 수 있습니다.</p>
+      <p>강점 분야 추가 강화보다 약점 분야 보강이 ROI가 훨씬 높은 단계입니다.</p>`;
+  }
+  document.getElementById('balance-readout').innerHTML = `
+    <h3>분야 균형도 진단</h3>
+    ${balanceText}`;
+}
+
+function collectInsights() {
+  const items = [];
+  DOMAINS.forEach(d => {
+    d.items.forEach((text, i) => {
+      const v = scores[`${d.id}:${i}`];
+      if (v) items.push({v, text, domain: d.short, dId: d.id, idx: i, memo: memos[`${d.id}:${i}`]});
+    });
+  });
+  return items;
+}
+
+function renderInsights() {
+  const items = collectInsights();
+  const weakAll = items.filter(x => x.v <= 2);
+  const strongAll = items.filter(x => x.v >= 4);
+  const weak = [...weakAll].sort((a,b) => a.v - b.v).slice(0, 10);
+  const strong = [...strongAll].sort((a,b) => b.v - a.v).slice(0, 10);
+  document.getElementById('weak-count').textContent = `(${weakAll.length})`;
+  document.getElementById('strong-count').textContent = `(${strongAll.length})`;
+
+  const renderList = (arr, cls, emptyMsg) => {
+    if (!arr.length) return `<li class="insight-empty-r">${emptyMsg}</li>`;
+    return arr.map((x, i) => `
+      <li class="item">
+        <span class="n">${String(i+1).padStart(2,'0')}</span>
+        <div><div class="text">${escapeHtml(x.text)}</div><span class="dom">${escapeHtml(x.domain)}</span></div>
+        <span class="sc ${cls}">${x.v}</span>
+      </li>`).join('');
+  };
+  document.getElementById('weak-list').innerHTML = renderList(weak, 'weak', '1~2점으로 평가한 항목이 없습니다.');
+  document.getElementById('strong-list').innerHTML = renderList(strong, 'strong', '4~5점으로 평가한 항목이 없습니다.');
+}
+
+function renderMemos() {
+  const items = collectInsights().filter(x => x.memo);
+  if (!items.length) {
+    document.getElementById('memos-block').style.display = 'none';
+    return;
+  }
+  document.getElementById('memos-block').style.display = 'block';
+  document.getElementById('memo-list').innerHTML = items.map(x => `
+    <div class="memo-card">
+      <div class="meta">${escapeHtml(x.domain)} · 점수 <span class="sc">${x.v}</span></div>
+      <div class="qtext">${escapeHtml(x.text)}</div>
+      <div class="mtext">${escapeHtml(x.memo)}</div>
+    </div>
+  `).join('');
+}
+
+function renderFooter() {
+  document.getElementById('footer-id').textContent = `ID · ${submission.id}`;
+}
+
+// ============ PDF (identical structure to index.html) ============
+function buildPdfReport() {
+  const o = overallStats();
+  const og = gradeOverall(o.sum, o.count);
+  const ds = DOMAINS.map(d => {
+    const s = domainStats(d.id);
+    const g = gradeForDomain(s.sum, s.count);
+    return {d, s, g};
+  });
+  const allItems = collectInsights();
+  const weak = [...allItems.filter(x => x.v <= 2)].sort((a,b)=>a.v-b.v).slice(0, 10);
+  const strong = [...allItems.filter(x => x.v >= 4)].sort((a,b)=>b.v-a.v).slice(0, 10);
+  const memosList = allItems.filter(x => x.memo);
+
+  const created = submission.created_at ? new Date(submission.created_at) : new Date();
+  const dateStr = created.toLocaleDateString('ko-KR', {year:'numeric', month:'long', day:'numeric'});
+  const timeStr = created.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+
+  const respondentFields = [
+    {l:'브랜드',    v: submission.brand_name || '미입력'},
+    {l:'담당자',    v: submission.contact_name || '미입력'},
+    {l:'이메일',    v: submission.email || '미입력'},
+    {l:'연락처',    v: submission.phone || '—'},
+    {l:'사업분야',  v: submission.business_field || '—'},
+    {l:'월매출',    v: submission.revenue || '—'},
+    {l:'운영기간',  v: submission.duration || '—'}
+  ];
+  const radarStats = DOMAINS.map(d => domainStats(d.id));
+  const radarSvg = `<svg viewBox="0 0 360 320">${buildRadarSVG(180, 165, 110, radarStats, DOMAINS.map(d => d.short))}</svg>`;
+
+  const page1 = `
+    <div class="pdf-page">
+      <div class="pdf-page-bg"></div>
+      <div class="pdf-header">
+        <div class="pdf-header-left">
+          <div class="eyebrow">Small Business Brand · Self-Diagnostic Report</div>
+          <div class="title">브랜드 <em>자가진단</em> 결과 보고서</div>
+        </div>
+        <div class="pdf-header-right">
+          <div>Submitted</div>
+          <div class="date">${dateStr} ${timeStr}</div>
+        </div>
+      </div>
+      <div class="pdf-respondent">
+        ${respondentFields.slice(0,6).map(f => `
+          <div class="field"><span class="lbl">${f.l}</span><span class="val">${escapeHtml(f.v)}</span></div>
+        `).join('')}
+        <div class="field" style="grid-column: 1 / -1;"><span class="lbl">${respondentFields[6].l}</span><span class="val">${escapeHtml(respondentFields[6].v)}</span></div>
+      </div>
+      <div class="pdf-overall">
+        <div class="grade-block">
+          <div class="grade-letter ${og.cls}">${og.letter}</div>
+          <div class="grade-label">${og.label}</div>
+        </div>
+        <div class="score-block">
+          <div class="score-eyebrow">Overall Score · 종합 점수</div>
+          <div class="score-num">${o.sum}<span class="mute"> / 600</span></div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${o.max?(o.sum/o.max)*100:0}%"></div></div>
+          <div class="verdict">${og.verdict}</div>
+        </div>
+      </div>
+      <div class="pdf-section-label"><span>By Area · 분야별 점수</span></div>
+      <div class="pdf-domain-grid">
+        ${ds.map(({d,s,g}) => `
+          <div class="pdf-domain-cell">
+            <div class="row1"><div class="name">${d.name}</div><div class="grade ${g.cls}">${g.letter}</div></div>
+            <div class="stat"><span class="num">${s.sum}</span>/ 150 · ${s.count}/${s.total}문항 · 평균 ${s.count ? (s.sum/s.count).toFixed(1) : '—'}</div>
+            <div class="bar"><div class="bar-fill ${g.cls}" style="width:${(s.sum/(d.items.length*5))*100}%"></div></div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="pdf-section-label"><span>Balance · 분야 균형도</span></div>
+      <div class="pdf-radar-wrap">${radarSvg}</div>
+      <div class="pdf-footer">
+        <span>brand-diag · TAAD</span>
+        <span>Page 1 / ${memosList.length > 0 ? '3' : '2'}</span>
+      </div>
+    </div>`;
+
+  const page2 = `
+    <div class="pdf-page">
+      <div class="pdf-page-bg"></div>
+      <div class="pdf-header">
+        <div class="pdf-header-left">
+          <div class="eyebrow">${escapeHtml(submission.brand_name || '—')} · ${dateStr}</div>
+          <div class="title" style="font-size: 22px;">약점 <em>Top ${weak.length}</em> · 강점 <em>Top ${strong.length}</em></div>
+        </div>
+        <div class="pdf-header-right"><div>${og.letter} · ${o.sum} / 600</div></div>
+      </div>
+      <div class="pdf-section-label"><span>Weakness · 1~2점 항목 (단기 보완 우선순위)</span></div>
+      ${weak.length === 0 ? '<div class="pdf-list"><div class="empty">1~2점으로 평가한 항목이 없습니다.</div></div>' : `
+        <ul class="pdf-list">
+          ${weak.map((x, i) => `
+            <li class="item">
+              <span class="n">${String(i+1).padStart(2,'0')}</span>
+              <div><div class="text">${escapeHtml(x.text)}</div><span class="dom">${escapeHtml(x.domain)}</span></div>
+              <span class="sc weak">${x.v}</span>
+            </li>`).join('')}
+        </ul>`}
+      <div class="pdf-section-label" style="margin-top: 28px;"><span>Strength · 4~5점 항목 (마케팅·영업 메시지 근거)</span></div>
+      ${strong.length === 0 ? '<div class="pdf-list"><div class="empty">4~5점으로 평가한 항목이 없습니다.</div></div>' : `
+        <ul class="pdf-list">
+          ${strong.map((x, i) => `
+            <li class="item">
+              <span class="n">${String(i+1).padStart(2,'0')}</span>
+              <div><div class="text">${escapeHtml(x.text)}</div><span class="dom">${escapeHtml(x.domain)}</span></div>
+              <span class="sc strong">${x.v}</span>
+            </li>`).join('')}
+        </ul>`}
+      <div class="pdf-footer">
+        <span>brand-diag · TAAD</span>
+        <span>Page 2 / ${memosList.length > 0 ? '3' : '2'}</span>
+      </div>
+    </div>`;
+
+  let page3 = '';
+  if (memosList.length > 0) {
+    page3 = `
+      <div class="pdf-page">
+        <div class="pdf-page-bg"></div>
+        <div class="pdf-header">
+          <div class="pdf-header-left">
+            <div class="eyebrow">${escapeHtml(submission.brand_name || '—')} · ${dateStr}</div>
+            <div class="title" style="font-size: 22px;">응답자 <em>메모</em> · ${memosList.length}건</div>
+          </div>
+          <div class="pdf-header-right"><div>${og.letter} · ${o.sum} / 600</div></div>
+        </div>
+        <div class="pdf-memos">
+          ${memosList.slice(0, 12).map(x => `
+            <div class="pdf-memo">
+              <div class="meta">${escapeHtml(x.domain)} · 점수 <span class="sc">${x.v}</span></div>
+              <div class="qtext">${escapeHtml(x.text)}</div>
+              <div class="mtext">${escapeHtml(x.memo)}</div>
+            </div>
+          `).join('')}
+          ${memosList.length > 12 ? `<div class="empty" style="text-align:center; padding:12px; color:var(--ink-mute); font-style:italic; font-family:var(--display); font-size:12px;">외 ${memosList.length - 12}건의 메모가 더 있습니다.</div>` : ''}
+        </div>
+        <div class="pdf-footer">
+          <span>brand-diag · TAAD</span>
+          <span>Page 3 / 3</span>
+        </div>
+      </div>`;
+  }
+  document.getElementById('pdf-report').innerHTML = page1 + page2 + page3;
+}
+
+async function generatePdfBlob() {
+  await document.fonts.ready;
+  buildPdfReport();
+  const pages = document.querySelectorAll('#pdf-report .pdf-page');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({orientation:'p', unit:'mm', format:'a4'});
+  for (let i = 0; i < pages.length; i++) {
+    const canvas = await html2canvas(pages[i], {
+      scale: 2, backgroundColor: '#FAF6EE', useCORS: true, logging: false, windowWidth: 794
+    });
+    if (i > 0) pdf.addPage();
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+  }
+  return pdf;
+}
+
+async function downloadPdf() {
+  const btns = [document.getElementById('btn-pdf'), document.getElementById('btn-pdf-2')];
+  btns.forEach(b => b && (b.disabled = true));
+  const orig = btns[0] ? btns[0].textContent : 'PDF 저장';
+  btns.forEach(b => b && (b.textContent = 'PDF 생성 중...'));
+  try {
+    const pdf = await generatePdfBlob();
+    const brand = (submission.brand_name || 'untitled').replace(/[^\w가-힣\-]/g, '_');
+    const date = (submission.created_at ? new Date(submission.created_at) : new Date()).toISOString().slice(0, 10);
+    pdf.save(`brand-diag-${brand}-${date}.pdf`);
+  } catch (err) {
+    console.error(err);
+    alert('PDF 생성에 실패했습니다: ' + (err.message || err));
+  } finally {
+    btns.forEach(b => b && (b.disabled = false, b.textContent = orig));
+  }
+}
+
+document.getElementById('btn-pdf').addEventListener('click', downloadPdf);
+document.getElementById('btn-pdf-2').addEventListener('click', downloadPdf);
+
+// ============ BOOT ============
+loadResult();
+</script>
+</body>
+</html>
